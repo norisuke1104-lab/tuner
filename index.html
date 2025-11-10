@@ -5,30 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webチューナー (改良版)</title>
     <style>
-        /* 見た目を整えるCSS */
+        /* (body, .tuner-container, button#startButton などのCSSは変更なし) */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: grid;
             place-items: center;
             min-height: 100vh;
-            background-color: #282c34; /* ダーク系の背景色 */
+            background-color: #282c34;
             color: #ffffff;
         }
-
         .tuner-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 20px;
         }
-
         button#startButton {
             font-size: 1.5rem;
             padding: 1rem 2rem;
             cursor: pointer;
             border-radius: 10px;
             border: none;
-            background-color: #61afef; /* ボタンの色 */
+            background-color: #61afef;
             color: white;
             transition: background-color 0.3s;
         }
@@ -37,45 +35,59 @@
             cursor: not-allowed;
         }
 
-        /* --- ① メーター --- */
+
+        /* --- ① メーター (変更あり) --- */
         .tuner-meter {
             width: 300px;
             height: 150px;
             background-color: #3a3f4a;
             border: 3px solid #4b5263;
             border-bottom: none;
-            border-radius: 150px 150px 0 0; /* 上半分を円形に */
+            border-radius: 150px 150px 0 0;
             position: relative;
             overflow: hidden;
-            /* 中央に線を引く */
             box-shadow: 0 0 0 2px #ffffff; /* 中央の白線 */
         }
 
-        /* 針 */
+        /* ★★★ 新規追加: ① メモリ線 ★★★ */
+        .meter-marks .mark {
+            width: 1px;
+            height: 15px; /* メモリの長さ */
+            background-color: #abb2bf; /* メモリの色 */
+            position: absolute;
+            bottom: 0;
+            left: calc(50% - 0.5px);
+            transform-origin: bottom center;
+        }
+        /* 各メモリを回転させて配置 (-40, -20, +20, +40 セント) */
+        .mark-1 { transform: rotate(-36deg); } /* -40セント */
+        .mark-2 { transform: rotate(-18deg); } /* -20セント */
+        .mark-3 { transform: rotate(18deg);  } /* +20セント */
+        .mark-4 { transform: rotate(36deg);  } /* +40セント */
+        /* ★★★ (ここまで) ★★★ */
+
+        /* 針 (変更なし) */
         .meter-needle {
             width: 2px;
             height: 140px;
-            background-color: #e06c75; /* 針の色 (赤系) */
+            background-color: #e06c75;
             position: absolute;
             bottom: 0;
             left: calc(50% - 1px);
-            /* 回転の基点を真下に設定 */
             transform-origin: bottom center;
-            /* 初期位置 (中央) */
             transform: rotate(0deg);
-            /* ③ 安定化 (滑らかな動き) */
-            transition: transform 0.15s ease-out;
+            transition: transform 0.15s ease-out; /* この値はJS側で制御 */
         }
 
-        /* --- 結果表示 --- */
+        /* --- 結果表示 (変更なし) --- */
         #resultDisplay {
             text-align: center;
-            height: 100px; /* 高さを確保 */
+            height: 100px;
         }
         #noteNameDisplay {
-            font-size: 4rem; /* 音名を大きく */
+            font-size: 4rem;
             font-weight: bold;
-            color: #98c379; /* 音名の色 (緑系) */
+            color: #98c379;
             line-height: 1;
         }
         #detuneDisplay {
@@ -83,7 +95,7 @@
             color: #abb2bf;
         }
 
-        /* --- ② 基準ピッチ / ③ 感度設定 --- */
+        /* --- 設定 (変更あり) --- */
         .settings {
             display: flex;
             gap: 20px;
@@ -110,6 +122,13 @@
         <button id="startButton">チューナーを開始</button>
 
         <div class="tuner-meter">
+            
+            <div class="meter-marks">
+                <div class="mark mark-1"></div>
+                <div class="mark mark-2"></div>
+                <div class="mark mark-3"></div>
+                <div class="mark mark-4"></div>
+            </div>
             <div id="meterNeedle" class="meter-needle"></div>
         </div>
 
@@ -137,10 +156,19 @@
                 <label for="sensitivitySlider">マイク感度 (ノイズカット)</label>
                 <input type="range" id="sensitivitySlider" min="0.01" max="0.1" step="0.005" value="0.03">
             </div>
-        </div>
+            
+            <div class="setting">
+                <label for="speedSelect">針の速さ</label>
+                <select id="speedSelect">
+                    <option value="0.60">速い</option>
+                    <option value="0.85" selected>普通</option>
+                    <option value="0.95">遅い</option>
+                </select>
+            </div>
+            </div>
 
     </div>
 
-    <script src="tuner.js"></script>
+    <script src="tuner.js?v=4"></script>
 </body>
 </html>
