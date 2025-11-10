@@ -3,27 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webチューナー</title>
+    <title>Webチューナー (改良版)</title>
     <style>
-        /* 見た目を整えるための簡単なCSS */
+        /* 見た目を整えるCSS */
         body {
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: grid;
             place-items: center;
             min-height: 100vh;
-            background-color: #f4f4f4;
+            background-color: #282c34; /* ダーク系の背景色 */
+            color: #ffffff;
         }
-        button {
+
+        .tuner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        button#startButton {
             font-size: 1.5rem;
             padding: 1rem 2rem;
             cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background-color: #61afef; /* ボタンの色 */
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button#startButton:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        /* --- ① メーター --- */
+        .tuner-meter {
+            width: 300px;
+            height: 150px;
+            background-color: #3a3f4a;
+            border: 3px solid #4b5263;
+            border-bottom: none;
+            border-radius: 150px 150px 0 0; /* 上半分を円形に */
+            position: relative;
+            overflow: hidden;
+            /* 中央に線を引く */
+            box-shadow: 0 0 0 2px #ffffff; /* 中央の白線 */
+        }
+
+        /* 針 */
+        .meter-needle {
+            width: 2px;
+            height: 140px;
+            background-color: #e06c75; /* 針の色 (赤系) */
+            position: absolute;
+            bottom: 0;
+            left: calc(50% - 1px);
+            /* 回転の基点を真下に設定 */
+            transform-origin: bottom center;
+            /* 初期位置 (中央) */
+            transform: rotate(0deg);
+            /* ③ 安定化 (滑らかな動き) */
+            transition: transform 0.15s ease-out;
+        }
+
+        /* --- 結果表示 --- */
+        #resultDisplay {
+            text-align: center;
+            height: 100px; /* 高さを確保 */
+        }
+        #noteNameDisplay {
+            font-size: 4rem; /* 音名を大きく */
+            font-weight: bold;
+            color: #98c379; /* 音名の色 (緑系) */
+            line-height: 1;
+        }
+        #detuneDisplay {
+            font-size: 1.5rem;
+            color: #abb2bf;
+        }
+
+        /* --- ② 基準ピッチ / ③ 感度設定 --- */
+        .settings {
+            display: flex;
+            gap: 20px;
+            color: #abb2bf;
+        }
+        .setting {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        select, input[type="range"] {
+            background-color: #4b5263;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
 
-    <button id="startButton">チューナーを開始</button>
-    <div id="result"></div>
+    <div class="tuner-container">
+        
+        <button id="startButton">チューナーを開始</button>
+
+        <div class="tuner-meter">
+            <div id="meterNeedle" class="meter-needle"></div>
+        </div>
+
+        <div id="resultDisplay">
+            <div id="noteNameDisplay">...</div>
+            <div id="detuneDisplay"></div>
+        </div>
+
+        <div class="settings">
+            <div class="setting">
+                <label for="a4FreqSelect">基準ピッチ (A4)</label>
+                <select id="a4FreqSelect">
+                    <option value="438">438 Hz</option>
+                    <option value="439">439 Hz</option>
+                    <option value="440">440 Hz</option>
+                    <option value="441">441 Hz</option>
+                    <option value="442" selected>442 Hz</option> <option value="443">443 Hz</option>
+                    <option value="444">444 Hz</option>
+                    <option value="445">445 Hz</option>
+                    <option value="446">446 Hz</option>
+                </select>
+            </div>
+            <div class="setting">
+                <label for="sensitivitySlider">マイク感度 (ノイズカット)</label>
+                <input type="range" id="sensitivitySlider" min="0.01" max="0.1" step="0.005" value="0.03">
+            </div>
+        </div>
+
+    </div>
 
     <script src="tuner.js"></script>
 </body>
