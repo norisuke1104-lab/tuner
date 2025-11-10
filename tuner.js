@@ -91,7 +91,10 @@ function updateMode(mode) {
         labelModeNormal.style.backgroundColor = '#61afef';
         labelModeNormal.style.color = 'white';
         labelModeKoto.style.backgroundColor = 'transparent';
-        labelModeKto.style.color = '#abb2bf';
+        
+        // ★★★ 修正点① ★★★
+        // labelModeKto を labelModeKoto に修正
+        labelModeKoto.style.color = '#abb2bf';
         
         kotoCurrentString = null;
         noteNameDisplay.textContent = "...";
@@ -155,7 +158,12 @@ function generateKotoStrings() {
 
 function detectPitch() {
     const bufferLength = analyser.fftSize;
-    const buffer = new Float3DArray(buffer);
+    
+    // ★★★ 修正点② ★★★
+    // Float3DArray を Float32Array に修正
+    // (引数も bufferLength に修正)
+    const buffer = new Float32Array(bufferLength);
+    
     analyser.getFloatTimeDomainData(buffer);
     const fundamentalFrequency = findFundamentalFrequency(buffer, audioContext.sampleRate);
 
