@@ -84,7 +84,6 @@ function detectPitch() {
         const noteInfo = getNoteInfo(fundamentalFrequency);
 
         // ③ 平滑化 (いい塩梅にする)
-        // 現在のずれと過去のずれをブレンドして、針の急な動きを抑える
         smoothedDetune = (smoothedDetune * SMOOTHING_FACTOR) + (noteInfo.detune * (1.0 - SMOOTHING_FACTOR));
 
         // ① メーターと表示を更新
@@ -109,13 +108,10 @@ function detectPitch() {
  */
 function updateUI(noteName, detune) {
     // ずれ（セント）をメーターの角度（度）に変換
-    // -50セントで-45度（左端）、+50セントで+45度（右端）とする
     const MAX_DETUNE_CENTS = 50;
     const MAX_ANGLE_DEG = 45; // 左右の最大振れ幅
     
-    // detuneが±50を超えても針が振り切れるように、clamp（範囲制限）する
     const clampedDetune = Math.max(-MAX_DETUNE_CENTS, Math.min(MAX_DETUNE_CENTS, detune));
-    
     const angle = (clampedDetune / MAX_DETUNE_CENTS) * MAX_ANGLE_DEG;
 
     // メーターの針を回転させる
@@ -125,8 +121,6 @@ function updateUI(noteName, detune) {
     noteNameDisplay.textContent = noteName;
 
     if (noteName !== "...") {
-        // detuneの値（平滑化する前の生のずれ）を表示した方が反応性が良いかもしれない
-        // ここでは平滑化後の値を表示
         detuneDisplay.textContent = `${detune.toFixed(0)} セント`;
         
         // ジャストピッチ（±5セント以内）なら針の色を変える
@@ -144,7 +138,6 @@ function updateUI(noteName, detune) {
 
 /**
  * 自己相関法（簡易版）を使って基本周波数を探す
- * (変更なし)
  */
 function findFundamentalFrequency(buffer, sampleRate) {
     const autoCorrelateValue = autoCorrelate(buffer, sampleRate);
@@ -153,7 +146,6 @@ function findFundamentalFrequency(buffer, sampleRate) {
 
 /**
  * 周波数 (Hz) から最も近い音名とずれ（セント）を計算する
- * (A4_FREQがグローバル変数になったため、引数から削除)
  */
 function getNoteInfo(frequency) {
     const midiNum = 12 * (Math.log(frequency / A4_FREQ) / Math.log(2)) + 69;
@@ -171,19 +163,16 @@ function getNoteInfo(frequency) {
 
 /**
  * 自己相関（Autocorrelation）アルゴリズム
- * (③ 感度スライダーに対応するため、NOISE_THRESHOLD を使うように変更)
  */
 function autoCorrelate(buf, sampleRate) {
     const SIZE = buf.length;
     const rms = Math.sqrt(buf.reduce((acc, val) => acc + val * val, 0) / SIZE);
 
     // RMS（音量）が小さすぎる場合はノイズとみなし、-1（検出不可）を返す
-    // ★★★ ここをグローバル変数 NOISE_THRESHOLD に変更 ★★★
     if (rms < NOISE_THRESHOLD) { 
         return -1;
     }
 
-    // (以下、前回のコードと同じ)
     let r1 = 0, r2 = SIZE - 1;
     const thres = 0.2;
 
