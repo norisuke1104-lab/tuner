@@ -61,16 +61,16 @@
             position: relative;
             overflow: hidden;
         }
-        .meter-arc-dots { /* ... */ z-index: 1; }
-        .arc-dot-container { /* ... */ }
-        .arc-dot { /* ... */ }
-        .meter-arc-ticks { /* ... */ z-index: 2; }
-        .arc-tick { /* ... */ }
-        .tick-short { /* ... */ }
-        .tick-long { /* ... */ }
-        .meter-arc-numbers { /* ... */ z-index: 3; }
-        .arc-number-container { /* ... */ }
-        .arc-mark-number { /* ... */ }
+        /* (メーターの目盛りCSSは変更なし) */
+        .meter-arc-dots { position: absolute; width: 100%; height: 100%; bottom: 0; left: 0; z-index: 1; }
+        .arc-dot-container { width: 6px; height: 150px; position: absolute; bottom: 0; left: calc(50% - 3px); transform-origin: bottom center; }
+        .arc-dot { display: block; width: 6px; height: 6px; background-color: #61afef; border-radius: 50%; position: absolute; top: 5px; left: 0; }
+        .meter-arc-ticks { position: absolute; width: 100%; height: 100%; bottom: 0; left: 0; z-index: 2; }
+        .arc-tick { width: 2px; background-color: #abb2bf; position: absolute; left: calc(50% - 1px); transform-origin: bottom center; }
+        .tick-short { height: 10px; bottom: 140px; }
+        .meter-arc-numbers { position: absolute; width: 100%; height: 100%; bottom: 0; left: 0; z-index: 3; }
+        .arc-number-container { width: 40px; height: 150px; position: absolute; bottom: 0; left: calc(50% - 20px); transform-origin: bottom center; }
+        .arc-mark-number { display: block; width: 100%; text-align: center; position: absolute; top: 25px; color: #abb2bf; font-size: 0.9rem; font-weight: bold; transform: rotate(var(--un-rotate, 0deg)); }
         .meter-needle {
             width: 2px;
             height: 140px;
@@ -178,6 +178,34 @@
         </div>
         
         <div class="tuner-meter">
+            <div class="meter-arc-dots">
+                <div class="arc-dot-container" style="transform: rotate(-45deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(-36deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(-27deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(-18deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(-9deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(0deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(9deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(18deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(27deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(36deg);"><span class="arc-dot"></span></div>
+                <div class="arc-dot-container" style="transform: rotate(45deg);"><span class="arc-dot"></span></div>
+            </div>
+            <div class="meter-arc-ticks">
+                <div class="arc-tick tick-short" style="transform: rotate(-36deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(-27deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(-9deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(9deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(27deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(36deg);"></div>
+            </div>
+            <div class="meter-arc-numbers">
+                <div class="arc-number-container" style="transform: rotate(-45deg); --un-rotate: 45deg;"><span class="arc-mark-number">-50</span></div>
+                <div class="arc-number-container" style="transform: rotate(-18deg); --un-rotate: 18deg;"><span class="arc-mark-number">-20</span></div>
+                <div class="arc-number-container" style="transform: rotate(0deg); --un-rotate: 0deg;"><span class="arc-mark-number">0</span></div>
+                <div class="arc-number-container" style="transform: rotate(18deg); --un-rotate: -18deg;"><span class="arc-mark-number">+20</span></div>
+                <div class="arc-number-container" style="transform: rotate(45deg); --un-rotate: -45deg;"><span class="arc-mark-number">+50</span></div>
+            </div>
             <div id="meterNeedle" class="meter-needle"></div>
         </div>
 
@@ -240,7 +268,6 @@
 
     </div>
 
-    <script src="tuner.js?v=8"></script>
+    <script src="tuner.js?v=9"></script>
 </body>
 </html>
-
