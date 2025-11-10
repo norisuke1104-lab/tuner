@@ -1,146 +1,219 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webチューナー (改良版)</title>
-    <style>
-        /* 見た目を整えるCSS */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: grid;
-            place-items: center;
-            min-height: 100vh;
-            background-color: #282c34; /* ダーク系の背景色 */
-            color: #ffffff;
-        }
+// --- DOM要素の取得 ---
+const startButton = document.getElementById('startButton');
 
-        .tuner-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
+// ① メーター関連
+const meterNeedle = document.getElementById('meterNeedle');
+const noteNameDisplay = document.getElementById('noteNameDisplay');
+const detuneDisplay = document.getElementById('detuneDisplay');
 
-        button#startButton {
-            font-size: 1.5rem;
-            padding: 1rem 2rem;
-            cursor: pointer;
-            border-radius: 10px;
-            border: none;
-            background-color: #61afef; /* ボタンの色 */
-            color: white;
-            transition: background-color 0.3s;
-        }
-        button#startButton:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
+// ② 基準ピッチ設定
+const a4FreqSelect = document.getElementById('a4FreqSelect');
 
-        /* --- ① メーター --- */
-        .tuner-meter {
-            width: 300px;
-            height: 150px;
-            background-color: #3a3f4a;
-            border: 3px solid #4b5263;
-            border-bottom: none;
-            border-radius: 150px 150px 0 0; /* 上半分を円形に */
-            position: relative;
-            overflow: hidden;
-            /* 中央に線を引く */
-            box-shadow: 0 0 0 2px #ffffff; /* 中央の白線 */
-        }
+// ③ 感度設定
+const sensitivitySlider = document.getElementById('sensitivitySlider');
 
-        /* 針 */
-        .meter-needle {
-            width: 2px;
-            height: 140px;
-            background-color: #e06c75; /* 針の色 (赤系) */
-            position: absolute;
-            bottom: 0;
-            left: calc(50% - 1px);
-            /* 回転の基点を真下に設定 */
-            transform-origin: bottom center;
-            /* 初期位置 (中央) */
-            transform: rotate(0deg);
-            /* ③ 安定化 (滑らかな動き) */
-            transition: transform 0.15s ease-out;
-        }
 
-        /* --- 結果表示 --- */
-        #resultDisplay {
-            text-align: center;
-            height: 100px; /* 高さを確保 */
-        }
-        #noteNameDisplay {
-            font-size: 4rem; /* 音名を大きく */
-            font-weight: bold;
-            color: #98c379; /* 音名の色 (緑系) */
-            line-height: 1;
-        }
-        #detuneDisplay {
-            font-size: 1.5rem;
-            color: #abb2bf;
-        }
+// --- オーディオ・設定関連の変数 ---
+let audioContext;
+let analyser;
+let mediaStreamSource;
 
-        /* --- ② 基準ピッチ / ③ 感度設定 --- */
-        .settings {
-            display: flex;
-            gap: 20px;
-            color: #abb2bf;
-        }
-        .setting {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        select, input[type="range"] {
-            background-color: #4b5263;
-            color: white;
-            border: none;
-            padding: 5px;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
+// ② 基準ピッチ (デフォルトを<select>の初期値に合わせる)
+let A4_FREQ = parseFloat(a4FreqSelect.value); 
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-    <div class="tuner-container">
+// ③ ノイズカットのしきい値 (デフォルトをスライダーの初期値に合わせる)
+let NOISE_THRESHOLD = parseFloat(sensitivitySlider.value);
+// ③ 平滑化のための変数 (メーターの動きを滑らかにする)
+let smoothedDetune = 0.0;
+const SMOOTHING_FACTOR = 0.85; // 0.0に近いほど敏感、1.0に近いほど滑らか
+
+// --- イベントリスナー ---
+
+startButton.addEventListener('click', () => {
+    // AudioContextを初期化
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048; // FFTサイズ
+
+    // マイクへのアクセスを要求
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            console.log("マイクアクセス成功");
+            startButton.disabled = true;
+            startButton.textContent = "起動中...";
+
+            mediaStreamSource = audioContext.createMediaStreamSource(stream);
+            mediaStreamSource.connect(analyser);
+
+            // ピッチ検出のループを開始
+            detectPitch();
+        })
+        .catch(err => {
+            console.error("マイクアクセス失敗:", err);
+            alert("マイクへのアクセスが拒否されました。");
+        });
+});
+
+// ② 基準ピッチが変更されたら A4_FREQ 変数を更新
+a4FreqSelect.addEventListener('change', (event) => {
+    A4_FREQ = parseFloat(event.target.value);
+});
+
+// ③ 感度スライダーが変更されたら NOISE_THRESHOLD 変数を更新
+sensitivitySlider.addEventListener('change', (event) => {
+    NOISE_THRESHOLD = parseFloat(event.target.value);
+});
+
+
+// --- ピッチ検出ループ ---
+
+function detectPitch() {
+    const bufferLength = analyser.fftSize;
+    const buffer = new Float32Array(bufferLength);
+    analyser.getFloatTimeDomainData(buffer);
+
+    // 自己相関法によるピッチ検出 (NOISE_THRESHOLD を渡す)
+    const fundamentalFrequency = findFundamentalFrequency(buffer, audioContext.sampleRate);
+
+    if (fundamentalFrequency !== -1) {
+        // --- 音が検出された場合 ---
         
-        <button id="startButton">チューナーを開始</button>
+        // 周波数から音名とずれ（セント）を計算
+        const noteInfo = getNoteInfo(fundamentalFrequency);
 
-        <div class="tuner-meter">
-            <div id="meterNeedle" class="meter-needle"></div>
-        </div>
+        // ③ 平滑化 (いい塩梅にする)
+        smoothedDetune = (smoothedDetune * SMOOTHING_FACTOR) + (noteInfo.detune * (1.0 - SMOOTHING_FACTOR));
 
-        <div id="resultDisplay">
-            <div id="noteNameDisplay">...</div>
-            <div id="detuneDisplay"></div>
-        </div>
+        // ① メーターと表示を更新
+        updateUI(noteInfo.noteName, smoothedDetune);
 
-        <div class="settings">
-            <div class="setting">
-                <label for="a4FreqSelect">基準ピッチ (A4)</label>
-                <select id="a4FreqSelect">
-                    <option value="438">438 Hz</option>
-                    <option value="439">439 Hz</option>
-                    <option value="440">440 Hz</option>
-                    <option value="441">441 Hz</option>
-                    <option value="442" selected>442 Hz</option>
-                    <option value="443">443 Hz</option>
-                    <option value="444">444 Hz</option>
-                    <option value="445">445 Hz</option>
-                    <option value="446">446 Hz</option>
-                </select>
-            </div>
-            <div class="setting">
-                <label for="sensitivitySlider">マイク感度 (ノイズカット)</label>
-                <input type="range" id="sensitivitySlider" min="0.01" max="0.1" step="0.005" value="0.03">
-            </div>
-        </div>
+    } else {
+        // --- 音が検出されなかった場合 (無音時) ---
 
-    </div>
+        // ③ 平滑化 (検出されない場合は、ゆっくり0（中央）に戻す)
+        smoothedDetune *= SMOOTHING_FACTOR;
+        
+        // ① メーターと表示を更新 (無音状態)
+        updateUI("...", smoothedDetune);
+    }
 
-    <script src="tuner.js"></script>
-</body>
-</html>
+    // 次のフレームで再度この関数を呼び出す (ループ)
+    requestAnimationFrame(detectPitch);
+}
+
+/**
+ * ① メーターとテキスト表示を更新する
+ */
+function updateUI(noteName, detune) {
+    // ずれ（セント）をメーターの角度（度）に変換
+    const MAX_DETUNE_CENTS = 50;
+    const MAX_ANGLE_DEG = 45; // 左右の最大振れ幅
+    
+    const clampedDetune = Math.max(-MAX_DETUNE_CENTS, Math.min(MAX_DETUNE_CENTS, detune));
+    const angle = (clampedDetune / MAX_DETUNE_CENTS) * MAX_ANGLE_DEG;
+
+    // メーターの針を回転させる
+    meterNeedle.style.transform = `rotate(${angle}deg)`;
+
+    // テキスト表示を更新
+    noteNameDisplay.textContent = noteName;
+
+    if (noteName !== "...") {
+        detuneDisplay.textContent = `${detune.toFixed(0)} セント`;
+        
+        // ジャストピッチ（±5セント以内）なら針の色を変える
+        if (Math.abs(detune) < 5) {
+            meterNeedle.style.backgroundColor = "#98c379"; // 緑色
+        } else {
+            meterNeedle.style.backgroundColor = "#e06c75"; // 赤色
+        }
+    } else {
+        detuneDisplay.textContent = "";
+        meterNeedle.style.backgroundColor = "#e06c75"; // 赤色
+    }
+}
+
+
+/**
+ * 自己相関法（簡易版）を使って基本周波数を探す
+ */
+function findFundamentalFrequency(buffer, sampleRate) {
+    const autoCorrelateValue = autoCorrelate(buffer, sampleRate);
+    return autoCorrelateValue;
+}
+
+/**
+ * 周波数 (Hz) から最も近い音名とずれ（セント）を計算する
+ */
+function getNoteInfo(frequency) {
+    const midiNum = 12 * (Math.log(frequency / A4_FREQ) / Math.log(2)) + 69;
+    const midiNumRounded = Math.round(midiNum);
+    const noteName = NOTE_NAMES[midiNumRounded % 12];
+    
+    const idealFrequency = A4_FREQ * Math.pow(2, (midiNumRounded - 69) / 12);
+    const detune = 1200 * Math.log(frequency / idealFrequency) / Math.log(2);
+
+    return {
+        noteName: noteName,
+        detune: detune
+    };
+}
+
+/**
+ * 自己相関（Autocorrelation）アルゴリズム
+ */
+function autoCorrelate(buf, sampleRate) {
+    const SIZE = buf.length;
+    const rms = Math.sqrt(buf.reduce((acc, val) => acc + val * val, 0) / SIZE);
+
+    // RMS（音量）が小さすぎる場合はノイズとみなし、-1（検出不可）を返す
+    if (rms < NOISE_THRESHOLD) { 
+        return -1;
+    }
+
+    let r1 = 0, r2 = SIZE - 1;
+    const thres = 0.2;
+
+    for (let i = 0; i < SIZE / 2; i++) {
+        if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+    }
+    for (let i = 1; i < SIZE / 2; i++) {
+        if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+    }
+
+    buf = buf.slice(r1, r2);
+    const newSize = buf.length;
+
+    const c = new Array(newSize).fill(0);
+    for (let i = 0; i < newSize; i++) {
+        for (let j = 0; j < newSize - i; j++) {
+            c[i] = c[i] + buf[j] * buf[j + i];
+        }
+    }
+
+    let d = 0;
+    while (c[d] > c[d + 1]) {
+        d++;
+    }
+
+    let maxValue = -1, maxIndex = -1;
+    for (let i = d; i < newSize; i++) {
+        if (c[i] > maxValue) {
+            maxValue = c[i];
+            maxIndex = i;
+        }
+    }
+
+    let T0 = maxIndex;
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+
+    if (a) {
+        T0 = T0 - b / (2 * a);
+    }
+
+    return sampleRate / T0;
+}
