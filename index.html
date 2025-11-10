@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webチューナー (箏モード対応)</title>
     <style>
-        /* (body, .tuner-container, button#startButton は変更なし) */
+        /* (CSSは変更ありません) */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: grid;
@@ -22,7 +22,7 @@
             align-items: center;
             gap: 20px;
             width: 100%;
-            max-width: 400px; /* 幅を少し広げる */
+            max-width: 400px;
         }
         button#startButton {
             font-size: 1.5rem;
@@ -38,8 +38,6 @@
             background-color: #555;
             cursor: not-allowed;
         }
-
-        /* --- ① モード選択 --- */
         .mode-select {
             display: flex;
             background-color: #3a3f4a;
@@ -53,10 +51,6 @@
             transition: background-color 0.3s;
             color: #abb2bf;
         }
-        /* JSで .mode-select input:checked + label と同等のスタイルを当てる */
-
-
-        /* (メーター関連のCSSは変更なし) */
         .tuner-meter {
             width: 300px;
             height: 150px;
@@ -89,8 +83,6 @@
             transition: transform 0.15s ease-out;
             z-index: 10;
         }
-
-        /* (結果表示のCSSは変更なし) */
         #resultDisplay {
             text-align: center;
             height: 100px;
@@ -105,10 +97,8 @@
             font-size: 1.5rem;
             color: #abb2bf;
         }
-
-        /* --- ②④ 箏モード設定 --- */
         .koto-settings {
-            display: none; /* JSで表示を切り替える */
+            display: none;
             flex-direction: column;
             gap: 15px;
             width: 100%;
@@ -118,16 +108,14 @@
             display: flex;
             gap: 20px;
         }
-
-        /* (通常の設定のCSSは変更なし) */
         .settings {
-            display: flex; /* JSで .normal-settings と .koto-settings を切り替える */
-            flex-direction: column; /* 縦積みに変更 */
+            display: flex;
+            flex-direction: column;
             gap: 15px;
             width: 100%;
             align-items: center;
         }
-        .setting-row { /* 設定を横並びにするためのラッパー */
+        .setting-row {
              display: flex;
              gap: 20px;
              color: #abb2bf;
@@ -144,12 +132,10 @@
             padding: 5px;
             border-radius: 5px;
         }
-
-        /* --- ⑤ 箏・糸ボタン --- */
         .koto-strings-container {
-            display: none; /* JSで表示を切り替える */
+            display: none;
             display: flex;
-            flex-wrap: wrap; /* 折り返す */
+            flex-wrap: wrap;
             gap: 8px;
             justify-content: center;
             padding: 10px;
@@ -166,11 +152,11 @@
             padding: 10px;
             cursor: pointer;
             font-size: 1rem;
-            min-width: 40px; /* 最小幅 */
+            min-width: 40px;
             text-align: center;
         }
         .koto-string-button.active {
-            background-color: #61afef; /* 選択中の色 */
+            background-color: #61afef;
             color: white;
             font-weight: bold;
         }
@@ -184,7 +170,7 @@
         <button id="startButton">チューナーを開始</button>
 
         <div class="mode-select">
-            <input type.="radio" name="mode" id="modeNormal" value="normal" checked style="display: none;">
+            <input type="radio" name="mode" id="modeNormal" value="normal" checked style="display: none;">
             <label id="labelModeNormal" for="modeNormal">通常</label>
             
             <input type="radio" name="mode" id="modeKoto" value="koto" style="display: none;">
@@ -231,19 +217,20 @@
             </div>
         </div>
 
-        <div id="kotoSettings" class="settings" style="display: none;"> <div class="koto-selects">
+        <div id="kotoSettings" class="settings" style="display: none;">
+            <div class="koto-selects">
                 <div class="setting">
                     <label for="kotoTuningSelect">調子</label>
                     <select id="kotoTuningSelect">
                         <option value="hirajoshi">平調子</option>
-                        </select>
+                    </select>
                 </div>
                 <div class="setting">
                     <label for="kotoBaseNoteSelect">基音</label>
                     <select id="kotoBaseNoteSelect">
                         <option value="G">ト音 (G)</option>
                         <option value="D">ニ音 (D)</option>
-                        </select>
+                    </select>
                 </div>
             </div>
         </div>
@@ -253,7 +240,6 @@
 
     </div>
 
-    <script src="tuner.js?v=5"></script>
+    <script src="tuner.js?v=6"></script>
 </body>
 </html>
-
