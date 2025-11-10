@@ -172,40 +172,11 @@
         <div class="mode-select">
             <input type="radio" name="mode" id="modeNormal" value="normal" checked style="display: none;">
             <label id="labelModeNormal" for="modeNormal">通常</label>
-            
             <input type="radio" name="mode" id="modeKoto" value="koto" style="display: none;">
             <label id="labelModeKoto" for="modeKoto">箏</label>
         </div>
         
         <div class="tuner-meter">
-            <div class="meter-arc-dots">
-                <div class="arc-dot-container" style="transform: rotate(-45deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(-36deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(-27deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(-18deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(-9deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(0deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(9deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(18deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(27deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(36deg);"><span class="arc-dot"></span></div>
-                <div class="arc-dot-container" style="transform: rotate(45deg);"><span class="arc-dot"></span></div>
-            </div>
-            <div class="meter-arc-ticks">
-                <div class="arc-tick tick-short" style="transform: rotate(-36deg);"></div>
-                <div class="arc-tick tick-short" style="transform: rotate(-27deg);"></div>
-                <div class="arc-tick tick-short" style="transform: rotate(-9deg);"></div>
-                <div class="arc-tick tick-short" style="transform: rotate(9deg);"></div>
-                <div class="arc-tick tick-short" style="transform: rotate(27deg);"></div>
-                <div class="arc-tick tick-short" style="transform: rotate(36deg);"></div>
-            </div>
-            <div class="meter-arc-numbers">
-                <div class="arc-number-container" style="transform: rotate(-45deg); --un-rotate: 45deg;"><span class="arc-mark-number">-50</span></div>
-                <div class="arc-number-container" style="transform: rotate(-18deg); --un-rotate: 18deg;"><span class="arc-mark-number">-20</span></div>
-                <div class="arc-number-container" style="transform: rotate(0deg); --un-rotate: 0deg;"><span class="arc-mark-number">0</span></div>
-                <div class="arc-number-container" style="transform: rotate(18deg); --un-rotate: -18deg;"><span class="arc-mark-number">+20</span></div>
-                <div class="arc-number-container" style="transform: rotate(45deg); --un-rotate: -45deg;"><span class="arc-mark-number">+50</span></div>
-            </div>
             <div id="meterNeedle" class="meter-needle"></div>
         </div>
 
@@ -214,7 +185,7 @@
             <div id="detuneDisplay"></div>
         </div>
 
-        <div id="normalSettings" class="settings">
+        <div id="sharedSettings" class="settings">
             <div class="setting-row">
                 <div class="setting">
                     <label for="a4FreqSelect">基準ピッチ (A4)</label>
@@ -268,7 +239,6 @@
 
     </div>
 
-    <script src="tuner.js?v=9"></script>
+    <script src="tuner.js?v=11"></script>
 </body>
 </html>
-
