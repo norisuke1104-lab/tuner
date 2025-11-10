@@ -1,35 +1,49 @@
-// DOM要素を取得
+// --- DOM要素の取得 ---
 const startButton = document.getElementById('startButton');
-const resultDiv = document.getElementById('result');
 
-// オーディオコンテキストとアナライザーノードを準備
+// ① メーター関連
+const meterNeedle = document.getElementById('meterNeedle');
+const noteNameDisplay = document.getElementById('noteNameDisplay');
+const detuneDisplay = document.getElementById('detuneDisplay');
+
+// ② 基準ピッチ設定
+const a4FreqSelect = document.getElementById('a4FreqSelect');
+
+// ③ 感度設定
+const sensitivitySlider = document.getElementById('sensitivitySlider');
+
+
+// --- オーディオ・設定関連の変数 ---
 let audioContext;
 let analyser;
 let mediaStreamSource;
 
-// ピッチ検出のための設定
-const A4_FREQ = 440.0; // A4 (ラ) の周波数
+// ② 基準ピッチ (デフォルトを<select>の初期値に合わせる)
+let A4_FREQ = parseFloat(a4FreqSelect.value); 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+// ③ ノイズカットのしきい値 (デフォルトをスライダーの初期値に合わせる)
+let NOISE_THRESHOLD = parseFloat(sensitivitySlider.value);
+// ③ 平滑化のための変数 (メーターの動きを滑らかにする)
+let smoothedDetune = 0.0;
+const SMOOTHING_FACTOR = 0.85; // 0.0に近いほど敏感、1.0に近いほど滑らか
+
+// --- イベントリスナー ---
+
 startButton.addEventListener('click', () => {
-    // ユーザーがボタンをクリックしたら処理を開始
-    
-    // AudioContextを初期化 (ブラウザの互換性を考慮)
+    // AudioContextを初期化
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
-    // AnalyserNode (分析ノード) を作成
     analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048; // FFTのサイズ (周波数分析の解像度)
+    analyser.fftSize = 2048; // FFTサイズ
 
     // マイクへのアクセスを要求
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            // 成功した場合
             console.log("マイクアクセス成功");
             startButton.disabled = true;
             startButton.textContent = "起動中...";
 
-            // マイクからのストリームをWeb Audio APIに接続
             mediaStreamSource = audioContext.createMediaStreamSource(stream);
             mediaStreamSource.connect(analyser);
 
@@ -37,69 +51,139 @@ startButton.addEventListener('click', () => {
             detectPitch();
         })
         .catch(err => {
-            // 失敗した場合
             console.error("マイクアクセス失敗:", err);
             alert("マイクへのアクセスが拒否されました。");
         });
 });
 
+// ② 基準ピッチが変更されたら A4_FREQ 変数を更新
+a4FreqSelect.addEventListener('change', (event) => {
+    A4_FREQ = parseFloat(event.target.value);
+});
+
+// ③ 感度スライダーが変更されたら NOISE_THRESHOLD 変数を更新
+sensitivitySlider.addEventListener('change', (event) => {
+    NOISE_THRESHOLD = parseFloat(event.target.value);
+});
+
+
+// --- ピッチ検出ループ ---
+
 function detectPitch() {
-    // AnalyserNodeから波形データを取得するためのバッファ
     const bufferLength = analyser.fftSize;
     const buffer = new Float32Array(bufferLength);
-    
-    // 時間領域の波形データをバッファにコピー
     analyser.getFloatTimeDomainData(buffer);
 
-    // 自己相関法（Auto-correlation）によるピッチ検出
-    // (ここでは簡易的な実装を使います)
+    // 自己相関法によるピッチ検出 (NOISE_THRESHOLD を渡す)
     const fundamentalFrequency = findFundamentalFrequency(buffer, audioContext.sampleRate);
 
     if (fundamentalFrequency !== -1) {
-        // 周波数が検出された場合
-        const noteInfo = getNoteInfo(fundamentalFrequency);
-        const output = `周波数: ${fundamentalFrequency.toFixed(2)} Hz | 音名: ${noteInfo.noteName} | ずれ: ${noteInfo.detune.toFixed(0)} セント`;
+        // --- 音が検出された場合 ---
         
-        // コンソールと画面に出力
-        console.log(output);
-        resultDiv.textContent = output;
+        // 周波数から音名とずれ（セント）を計算
+        const noteInfo = getNoteInfo(fundamentalFrequency);
+
+        // ③ 平滑化 (いい塩梅にする)
+        // 現在のずれと過去のずれをブレンドして、針の急な動きを抑える
+        smoothedDetune = (smoothedDetune * SMOOTHING_FACTOR) + (noteInfo.detune * (1.0 - SMOOTHING_FACTOR));
+
+        // ① メーターと表示を更新
+        updateUI(noteInfo.noteName, smoothedDetune);
 
     } else {
-        // 周波数が検出できなかった場合 (無音時など)
-        console.log("... (無音)");
-        resultDiv.textContent = "... (無音)";
+        // --- 音が検出されなかった場合 (無音時) ---
+
+        // ③ 平滑化 (検出されない場合は、ゆっくり0（中央）に戻す)
+        smoothedDetune *= SMOOTHING_FACTOR;
+        
+        // ① メーターと表示を更新 (無音状態)
+        updateUI("...", smoothedDetune);
     }
 
     // 次のフレームで再度この関数を呼び出す (ループ)
     requestAnimationFrame(detectPitch);
 }
 
+/**
+ * ① メーターとテキスト表示を更新する
+ */
+function updateUI(noteName, detune) {
+    // ずれ（セント）をメーターの角度（度）に変換
+    // -50セントで-45度（左端）、+50セントで+45度（右端）とする
+    const MAX_DETUNE_CENTS = 50;
+    const MAX_ANGLE_DEG = 45; // 左右の最大振れ幅
+    
+    // detuneが±50を超えても針が振り切れるように、clamp（範囲制限）する
+    const clampedDetune = Math.max(-MAX_DETUNE_CENTS, Math.min(MAX_DETUNE_CENTS, detune));
+    
+    const angle = (clampedDetune / MAX_DETUNE_CENTS) * MAX_ANGLE_DEG;
+
+    // メーターの針を回転させる
+    meterNeedle.style.transform = `rotate(${angle}deg)`;
+
+    // テキスト表示を更新
+    noteNameDisplay.textContent = noteName;
+
+    if (noteName !== "...") {
+        // detuneの値（平滑化する前の生のずれ）を表示した方が反応性が良いかもしれない
+        // ここでは平滑化後の値を表示
+        detuneDisplay.textContent = `${detune.toFixed(0)} セント`;
+        
+        // ジャストピッチ（±5セント以内）なら針の色を変える
+        if (Math.abs(detune) < 5) {
+            meterNeedle.style.backgroundColor = "#98c379"; // 緑色
+        } else {
+            meterNeedle.style.backgroundColor = "#e06c75"; // 赤色
+        }
+    } else {
+        detuneDisplay.textContent = "";
+        meterNeedle.style.backgroundColor = "#e06c75"; // 赤色
+    }
+}
+
 
 /**
  * 自己相関法（簡易版）を使って基本周波数を探す
+ * (変更なし)
  */
 function findFundamentalFrequency(buffer, sampleRate) {
-    // 自己相関を計算
     const autoCorrelateValue = autoCorrelate(buffer, sampleRate);
-    
-    // autoCorrelate関数は、周波数が見つからない場合は -1 を返す
     return autoCorrelateValue;
 }
 
 /**
+ * 周波数 (Hz) から最も近い音名とずれ（セント）を計算する
+ * (A4_FREQがグローバル変数になったため、引数から削除)
+ */
+function getNoteInfo(frequency) {
+    const midiNum = 12 * (Math.log(frequency / A4_FREQ) / Math.log(2)) + 69;
+    const midiNumRounded = Math.round(midiNum);
+    const noteName = NOTE_NAMES[midiNumRounded % 12];
+    
+    const idealFrequency = A4_FREQ * Math.pow(2, (midiNumRounded - 69) / 12);
+    const detune = 1200 * Math.log(frequency / idealFrequency) / Math.log(2);
+
+    return {
+        noteName: noteName,
+        detune: detune
+    };
+}
+
+/**
  * 自己相関（Autocorrelation）アルゴリズム
- * buffer内の波形データから基本周波数を推定する
- * (参考: https://github.com/cwilso/PitchDetect)
+ * (③ 感度スライダーに対応するため、NOISE_THRESHOLD を使うように変更)
  */
 function autoCorrelate(buf, sampleRate) {
     const SIZE = buf.length;
     const rms = Math.sqrt(buf.reduce((acc, val) => acc + val * val, 0) / SIZE);
 
     // RMS（音量）が小さすぎる場合はノイズとみなし、-1（検出不可）を返す
-    if (rms < 0.01) {
+    // ★★★ ここをグローバル変数 NOISE_THRESHOLD に変更 ★★★
+    if (rms < NOISE_THRESHOLD) { 
         return -1;
     }
 
+    // (以下、前回のコードと同じ)
     let r1 = 0, r2 = SIZE - 1;
     const thres = 0.2;
 
@@ -142,30 +226,5 @@ function autoCorrelate(buf, sampleRate) {
         T0 = T0 - b / (2 * a);
     }
 
-    // 周波数 = サンプルレート / 周期
     return sampleRate / T0;
-}
-
-
-/**
- * 周波数 (Hz) から最も近い音名とずれ（セント）を計算する
- */
-function getNoteInfo(frequency) {
-    // 周波数からMIDIノート番号を計算 (A4=440Hz=MIDI 69)
-    const midiNum = 12 * (Math.log(frequency / A4_FREQ) / Math.log(2)) + 69;
-    const midiNumRounded = Math.round(midiNum);
-
-    // 音名 (C, C#, D...) を取得
-    const noteName = NOTE_NAMES[midiNumRounded % 12];
-    
-    // 基準となる音の周波数
-    const idealFrequency = A4_FREQ * Math.pow(2, (midiNumRounded - 69) / 12);
-    
-    // ずれをセント単位で計算 (1オクターブ = 1200セント)
-    const detune = 1200 * Math.log(frequency / idealFrequency) / Math.log(2);
-
-    return {
-        noteName: noteName,
-        detune: detune
-    };
 }
