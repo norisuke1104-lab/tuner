@@ -20,23 +20,13 @@
             align-items: center;
             gap: 20px;
         }
-        button#startButton {
-            font-size: 1.5rem;
-            padding: 1rem 2rem;
-            cursor: pointer;
-            border-radius: 10px;
-            border: none;
-            background-color: #61afef;
-            color: white;
-            transition: background-color 0.3s;
-        }
         button#startButton:disabled {
             background-color: #555;
             cursor: not-allowed;
         }
 
 
-        /* --- ① メーター (CSS変更あり) --- */
+        /* --- ① メーター (CSS大幅変更) --- */
         .tuner-meter {
             width: 300px;
             height: 150px;
@@ -48,44 +38,55 @@
             overflow: hidden;
         }
 
-        /* ★★★ 変更点: ① メモリ（ティック線）のCSS ★★★ */
-        .meter-arc-marks {
+        /* ★★★ 新規追加: ① 円弧上の青い点 ★★★ */
+        .meter-arc-dots {
             width: 100%;
             height: 100%;
             position: absolute;
             bottom: 0;
             left: 0;
+            z-index: 1; /* ティック線、数字より下に配置 */
         }
-        /* ティック線の共通スタイル */
-        .arc-mark-tick {
-            width: 2px;
-            background-color: #abb2bf; /* 線の色 */
+        .arc-dot-container {
+            width: 6px; /* 点の直径 */
+            height: 150px; /* メーターの半径 */
             position: absolute;
-            left: calc(50% - 1px);
+            bottom: 0;
+            left: calc(50% - 3px); /* 点の直径の半分 */
             transform-origin: bottom center;
-            /* ★★★ 新規追加: 青い点 ★★★ */
-            z-index: 1; /* 数字や針より下に配置 */
         }
-        .arc-mark-tick::before {
-            content: '';
+        .arc-dot {
             display: block;
             width: 6px; /* 点の直径 */
             height: 6px;
             background-color: #61afef; /* 青色 */
             border-radius: 50%; /* 円形 */
             position: absolute;
-            bottom: calc(100% + 5px); /* ティック線の上端から少し上に配置 */
-            left: -2px; /* ティック線の中央に合わせる */
-            z-index: 2; /* ティック線より手前 */
+            top: 5px; /* メーターの円弧の端からの距離 */
+            left: 0;
         }
 
+        /* ★★★ 変更点: ① メモリ（ティック線）のCSS ★★★ */
+        .meter-arc-ticks { /* 名前変更 */
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 2; /* 点より手前に配置 */
+        }
+        /* ティック線の共通スタイル */
+        .arc-tick { /* 名前変更 */
+            width: 2px;
+            background-color: #abb2bf; /* 線の色 */
+            position: absolute;
+            left: calc(50% - 1px);
+            transform-origin: bottom center;
+        }
         /* 短いティック (±10, ±30, ±40) */
         .tick-short {
-            height: 10px; /* 少し長く */
+            height: 10px;
             bottom: 140px; /* 150px - 10px */
-        }
-        .tick-short::before {
-             display: none; /* 短いティックには点を表示しない */
         }
         /* 長いティック (±20, ±50) */
         .tick-long {
@@ -94,7 +95,7 @@
         }
         /* 中央のティック (0) は特別に長くする */
         .tick-center {
-            height: 20px; /* 最も長く */
+            height: 20px;
             bottom: 130px; /* 150px - 20px */
         }
 
@@ -106,6 +107,7 @@
             position: absolute;
             bottom: 0;
             left: 0;
+            z-index: 3; /* 点やティック線より手前に表示 */
         }
         .arc-number-container {
             width: 40px;
@@ -114,16 +116,15 @@
             bottom: 0;
             left: calc(50% - 20px);
             transform-origin: bottom center;
-            z-index: 3; /* 点より手前に表示 */
         }
         .arc-mark-number {
             display: block;
             width: 100%;
             text-align: center;
             position: absolute;
-            top: 10px; /* 円弧の上端からの距離 (少し上に) */
+            top: 25px; /* 円弧の上端からの距離 (青い点より少し下) */
             color: #abb2bf;
-            font-size: 0.9rem; /* 少し大きく */
+            font-size: 0.9rem;
             font-weight: bold;
             transform: rotate(var(--un-rotate, 0deg));
         }
@@ -159,19 +160,51 @@
 
         <div class="tuner-meter">
             
-            <div class="meter-arc-marks">
-                <div class="arc-mark-tick tick-long"  style="transform: rotate(-45deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(-36deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(-27deg);"></div>
-                <div class="arc-mark-tick tick-long"  style="transform: rotate(-18deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(-9deg);"></div>
-                <div class="arc-mark-tick tick-center" style="transform: rotate(0deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(9deg);"></div>
-                <div class="arc-mark-tick tick-long"  style="transform: rotate(18deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(27deg);"></div>
-                <div class="arc-mark-tick tick-short" style="transform: rotate(36deg);"></div>
-                <div class="arc-mark-tick tick-long"  style="transform: rotate(45deg);"></div>
+            <div class="meter-arc-dots">
+                <div class="arc-dot-container" style="transform: rotate(-45deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(-36deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(-27deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(-18deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(-9deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(0deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(9deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(18deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(27deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(36deg);">
+                    <span class="arc-dot"></span>
+                </div>
+                <div class="arc-dot-container" style="transform: rotate(45deg);">
+                    <span class="arc-dot"></span>
+                </div>
             </div>
+
+            <div class="meter-arc-ticks">
+                <div class="arc-tick tick-short" style="transform: rotate(-36deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(-27deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(-9deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(9deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(27deg);"></div>
+                <div class="arc-tick tick-short" style="transform: rotate(36deg);"></div>
+                </div>
+
 
             <div class="meter-arc-numbers">
                 <div class="arc-number-container" style="transform: rotate(-45deg); --un-rotate: 45deg;">
